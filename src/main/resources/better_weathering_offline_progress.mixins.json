@@ -1,9 +1,9 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "com.bettercontent.immersiveweatheringsampler.mixin",
+  "package": "com.bettercontent.betterweatheringofflineprogress.mixin",
   "compatibilityLevel": "JAVA_17",
-  "refmap": "immersive_weathering_sampler.refmap.json",
+  "refmap": "better_weathering_offline_progress.refmap.json",
   "mixins": [
     "BuiltinBlockGrowthAccessor",
     "BuiltinChanceMixin",

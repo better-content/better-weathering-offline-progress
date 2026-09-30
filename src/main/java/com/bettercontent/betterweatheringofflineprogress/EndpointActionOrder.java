@@ -1,4 +1,4 @@
-package com.bettercontent.immersiveweatheringsampler;
+package com.bettercontent.betterweatheringofflineprogress;
 
 /**
  * Establishes one stable application order for endpoint actions collected from

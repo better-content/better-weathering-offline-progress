@@ -1,7 +1,7 @@
-package com.bettercontent.immersiveweatheringsampler;
+package com.bettercontent.betterweatheringofflineprogress;
 
-import com.bettercontent.immersiveweatheringsampler.mixin.BlockGrowthHandlerAccessor;
-import com.bettercontent.immersiveweatheringsampler.mixin.BuiltinBlockGrowthAccessor;
+import com.bettercontent.betterweatheringofflineprogress.mixin.BlockGrowthHandlerAccessor;
+import com.bettercontent.betterweatheringofflineprogress.mixin.BuiltinBlockGrowthAccessor;
 import com.ordana.immersive_weathering.blocks.cracked.Crackable;
 import com.ordana.immersive_weathering.blocks.mossy.CrackableMossable;
 import com.ordana.immersive_weathering.blocks.mossy.Mossable;

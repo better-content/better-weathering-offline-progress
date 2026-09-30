@@ -1,4 +1,4 @@
-# Immersive Weathering Sampler
+# Better Weathering Offline Progress
 
 A Better Content Forge 1.20.1 integration that gives Immersive Weathering a
 bounded unloaded-time endpoint update.
@@ -18,7 +18,7 @@ created blocks.
 
 ## Configuration
 
-`config/immersive_weathering_sampler-common.toml` controls the minimum unloaded
+`config/better_weathering_offline_progress-common.toml` controls the minimum unloaded
 interval, probability density multiplier, and debug logging. A newly installed
 world initializes chunk snapshots on first observation, so no time before the
 mod was installed is applied retroactively.

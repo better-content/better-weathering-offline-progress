@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "immersive-weathering-sampler"
+rootProject.name = "better-weathering-offline-progress"
 

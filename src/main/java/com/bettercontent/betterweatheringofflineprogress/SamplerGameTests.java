@@ -1,4 +1,4 @@
-package com.bettercontent.immersiveweatheringsampler;
+package com.bettercontent.betterweatheringofflineprogress;
 
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -14,7 +14,7 @@ public final class SamplerGameTests {
     }
 
     public static void register(final RegisterGameTestsEvent event) {
-        ImmersiveWeatheringSampler.LOGGER.info("Registering Immersive Weathering Sampler game tests");
+        ImmersiveWeatheringSampler.LOGGER.info("Registering Better Weathering Offline Progress game tests");
         event.register(SamplerGameTests.class);
     }
 

@@ -1,4 +1,4 @@
-package com.bettercontent.immersiveweatheringsampler;
+package com.bettercontent.betterweatheringofflineprogress;
 
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.MinecraftForge;
@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 
 @Mod(ImmersiveWeatheringSampler.MOD_ID)
 public final class ImmersiveWeatheringSampler {
-    public static final String MOD_ID = "immersive_weathering_sampler";
+    public static final String MOD_ID = "better_weathering_offline_progress";
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public ImmersiveWeatheringSampler() {

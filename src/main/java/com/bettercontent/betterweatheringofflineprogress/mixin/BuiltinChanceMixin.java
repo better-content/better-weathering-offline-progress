@@ -1,6 +1,6 @@
-package com.bettercontent.immersiveweatheringsampler.mixin;
+package com.bettercontent.betterweatheringofflineprogress.mixin;
 
-import com.bettercontent.immersiveweatheringsampler.ChanceBypass;
+import com.bettercontent.betterweatheringofflineprogress.ChanceBypass;
 import com.ordana.immersive_weathering.data.block_growths.growths.builtin.CampfireSootGrowth;
 import com.ordana.immersive_weathering.data.block_growths.growths.builtin.FireSootGrowth;
 import com.ordana.immersive_weathering.data.block_growths.growths.builtin.GrassGrowth;

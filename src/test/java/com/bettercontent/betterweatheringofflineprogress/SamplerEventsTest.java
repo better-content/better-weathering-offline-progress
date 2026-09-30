@@ -1,4 +1,4 @@
-package com.bettercontent.immersiveweatheringsampler;
+package com.bettercontent.betterweatheringofflineprogress;
 
 import org.junit.jupiter.api.Test;
 

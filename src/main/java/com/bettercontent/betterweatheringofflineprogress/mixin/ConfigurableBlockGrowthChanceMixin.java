@@ -1,6 +1,6 @@
-package com.bettercontent.immersiveweatheringsampler.mixin;
+package com.bettercontent.betterweatheringofflineprogress.mixin;
 
-import com.bettercontent.immersiveweatheringsampler.ChanceBypass;
+import com.bettercontent.betterweatheringofflineprogress.ChanceBypass;
 import com.ordana.immersive_weathering.data.block_growths.growths.ConfigurableBlockGrowth;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;

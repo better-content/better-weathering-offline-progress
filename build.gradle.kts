@@ -113,6 +113,6 @@ tasks.register("verifyFull") {
 tasks.withType<JavaCompile>().configureEach { options.release.set(17) }
 
 mixin {
-    add(sourceSets.main.get(), "immersive_weathering_sampler.refmap.json")
-    config("immersive_weathering_sampler.mixins.json")
+    add(sourceSets.main.get(), "better_weathering_offline_progress.refmap.json")
+    config("better_weathering_offline_progress.mixins.json")
 }

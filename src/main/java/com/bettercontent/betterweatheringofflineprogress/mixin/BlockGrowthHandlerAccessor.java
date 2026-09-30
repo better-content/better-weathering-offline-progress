@@ -1,4 +1,4 @@
-package com.bettercontent.immersiveweatheringsampler.mixin;
+package com.bettercontent.betterweatheringofflineprogress.mixin;
 
 import com.ordana.immersive_weathering.data.block_growths.BlockGrowthHandler;
 import com.ordana.immersive_weathering.data.block_growths.TickSource;

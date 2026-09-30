@@ -1,6 +1,6 @@
-package com.bettercontent.immersiveweatheringsampler.mixin;
+package com.bettercontent.betterweatheringofflineprogress.mixin;
 
-import com.bettercontent.immersiveweatheringsampler.ImmersiveWeatheringSampler;
+import com.bettercontent.betterweatheringofflineprogress.ImmersiveWeatheringSampler;
 import com.ordana.immersive_weathering.dynamicpack.ServerDynamicResourcesHandler;
 import net.mehvahdjukaar.moonlight.api.resources.StaticResource;
 import net.minecraft.resources.ResourceLocation;
@@ -26,7 +26,7 @@ public abstract class LeafPileResourceMixin {
             StaticResource resource, String pileId, String leafId, CallbackInfo callback) {
         ResourceLocation dynamicLeaf = ResourceLocation.tryParse(leafId);
         if (dynamicLeaf == null
-                || !dynamicLeaf.getNamespace().equals("dynamic_trees_hexerei")
+                || !dynamicLeaf.getNamespace().equals("better_hexerei_dynamic_trees")
                 || !HEXEREI_LEAVES.contains(dynamicLeaf.getPath())) {
             return;
         }

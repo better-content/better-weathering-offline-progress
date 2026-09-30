@@ -2,10 +2,10 @@
 
 ## Scope
 
-This repository contains the Better Content-owned Forge mod **Immersive Weathering Sampler**.
+This repository contains the Better Content-owned Forge mod **Better Weathering Offline Progress**.
 
-- Canonical mod ID: `immersive_weathering_sampler`
-- Canonical artifact: `immersive-weathering-sampler-<version>.jar`
+- Canonical mod ID: `better_weathering_offline_progress`
+- Canonical artifact: `better-weathering-offline-progress-<version>.jar`
 - Maven group: `com.bettercontent`
 - Java runtime: 17
 - Minecraft/Forge baseline: 1.20.1 / 47.4.13
