@@ -12,6 +12,7 @@ import com.ordana.immersive_weathering.data.block_growths.TickSource;
 import com.ordana.immersive_weathering.data.block_growths.growths.ConfigurableBlockGrowth;
 import com.ordana.immersive_weathering.data.block_growths.growths.IBlockGrowth;
 import com.ordana.immersive_weathering.data.block_growths.growths.builtin.BuiltinBlockGrowth;
+import com.ordana.immersive_weathering.data.block_growths.growths.builtin.SnowIcicleGrowth;
 import com.ordana.immersive_weathering.reg.ModTags;
 import com.ordana.immersive_weathering.util.Weatherable;
 import java.util.ArrayList;
@@ -19,10 +20,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.GameRules;
@@ -244,6 +247,8 @@ public final class EndpointSampler {
         if (universal != null) rules.addAll(universal);
         for (IBlockGrowth rule : rules) {
             if (rule instanceof BuiltinBlockGrowth builtin && builtin.getName().startsWith("lightning")) continue;
+            if (rule instanceof SnowIcicleGrowth && !snowIcicleNeighborhoodLoaded(
+                    pos, state.is(BlockTags.SNOW) ? 2 : 1, level::hasChunkAt)) continue;
             final double growthChance = growthChance(rule);
             final long seed = seed(level, pos, new ExposureClock(exposure, 0, 0, 0), ruleKey(rule, source));
             final RandomSource random = RandomSource.create(seed);
@@ -252,6 +257,21 @@ public final class EndpointSampler {
                     RandomSource.create(seed),
                     () -> rule.tryGrowing(pos, state, level, () -> level.getBiome(pos)))));
         }
+    }
+
+    static boolean snowIcicleNeighborhoodLoaded(
+            final BlockPos pos,
+            final int blocksBelow,
+            final Predicate<BlockPos> hasChunkAt
+    ) {
+        // SnowIcicleGrowth checks the candidate block and its horizontal neighbors.
+        // Do not let those checks synchronously load a chunk during the server tick.
+        final BlockPos iciclePos = pos.below(blocksBelow);
+        if (!hasChunkAt.test(iciclePos)) return false;
+        for (Direction direction : Direction.Plane.HORIZONTAL) {
+            if (!hasChunkAt.test(iciclePos.relative(direction))) return false;
+        }
+        return true;
     }
 
     private static double growthChance(final IBlockGrowth rule) {

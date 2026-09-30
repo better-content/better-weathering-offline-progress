@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import org.junit.jupiter.api.Test;
 
@@ -34,5 +35,15 @@ final class EndpointSamplingPolicyTest {
         final double secondHalf = ProbabilityMath.atLeastOne(400L, 0.0005D);
         assertEquals(oneEndpoint, 1.0D - (1.0D - firstHalf) * (1.0D - secondHalf), 1.0E-15D);
         assertTrue(oneEndpoint <= 1.0D);
+    }
+
+    @Test
+    void icicleSamplingSkipsBoundariesWhenANeighborChunkIsNotLoaded() {
+        final var originChunkOnly = (java.util.function.Predicate<BlockPos>) pos ->
+                Math.floorDiv(pos.getX(), 16) == 0 && Math.floorDiv(pos.getZ(), 16) == 0;
+
+        assertFalse(EndpointSampler.snowIcicleNeighborhoodLoaded(new BlockPos(0, 64, 8), 1, originChunkOnly));
+        assertTrue(EndpointSampler.snowIcicleNeighborhoodLoaded(new BlockPos(8, 64, 8), 1, originChunkOnly));
+        assertFalse(EndpointSampler.snowIcicleNeighborhoodLoaded(new BlockPos(8, 64, 8), 1, pos -> false));
     }
 }
