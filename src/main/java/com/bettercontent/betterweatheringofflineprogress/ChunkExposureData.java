@@ -28,8 +28,16 @@ public final class ChunkExposureData {
     }
 
     public static void write(final ServerLevel level, final ChunkAccess chunk, final ExposureClock clock) {
-        entries(level).put(chunk.getPos().toLong(), new Entry(true, clock));
+        recordForSave(level, chunk, clock);
         chunk.setUnsaved(true);
+    }
+
+    /** Updates the snapshot that is serialized into the current native save.
+     * Never marks a chunk dirty from inside its save callback: native flush
+     * repeats while chunks are dirty. Ordinary loaded/unload updates use write.
+     */
+    public static void recordForSave(final ServerLevel level, final ChunkAccess chunk, final ExposureClock clock) {
+        entries(level).put(chunk.getPos().toLong(), new Entry(true, clock));
     }
 
     public static void load(final ServerLevel level, final ChunkAccess chunk, final CompoundTag chunkTag) {

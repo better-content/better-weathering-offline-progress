@@ -1,5 +1,7 @@
 package com.bettercontent.betterweatheringofflineprogress;
 
+import net.minecraft.core.BlockPos;
+import net.minecraftforge.event.level.ChunkDataEvent;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -25,6 +27,39 @@ public final class SamplerGameTests {
         expected.save(tag, "Exposure");
         helper.assertTrue(expected.equals(ExposureClock.load(tag, "Exposure")), "exposure snapshot must be lossless");
         helper.assertTrue(expected.total() == 260, "partitioned exposure must preserve elapsed time");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 40)
+    public static void saveCallbackPreservesSnapshotWithoutRedirtying(final GameTestHelper helper) {
+        final var level = helper.getLevel();
+        final var chunk = level.getChunkAt(helper.absolutePos(BlockPos.ZERO));
+        final boolean originalDirty = chunk.isUnsaved();
+        final CompoundTag originalSnapshot = new CompoundTag();
+        ChunkExposureData.save(level, chunk, originalSnapshot);
+        try {
+            // Normal world changes must still schedule persistence.
+            ChunkExposureData.write(level, chunk, new ExposureClock(1, 2, 3, 4));
+            helper.assertTrue(chunk.isUnsaved(), "ordinary snapshot updates must remain dirty");
+            final ExposureClock expected = ExposureSavedData.get(level).clock();
+            // Mirror Minecraft's clear-before-save and use the real callback.
+            for (int pass = 0; pass < 2; pass++) {
+                chunk.setUnsaved(false);
+                final CompoundTag saved = new CompoundTag();
+                SamplerEvents.onChunkSave(new ChunkDataEvent.Save(chunk, level, saved));
+                helper.assertTrue(!chunk.isUnsaved(), "a save callback must not force another native save pass");
+                ChunkExposureData.load(level, chunk, saved);
+                helper.assertTrue(ChunkExposureData.initialized(level, chunk), "schema must survive native save NBT");
+                helper.assertTrue(ChunkExposureData.read(level, chunk).equals(expected), "current exposure snapshot must survive save/load unchanged");
+            }
+            // Never erase a dirty flag belonging to a real concurrent change.
+            chunk.setUnsaved(true);
+            SamplerEvents.onChunkSave(new ChunkDataEvent.Save(chunk, level, new CompoundTag()));
+            helper.assertTrue(chunk.isUnsaved(), "pre-existing dirty flags must remain untouched");
+        } finally {
+            ChunkExposureData.load(level, chunk, originalSnapshot);
+            chunk.setUnsaved(originalDirty);
+        }
         helper.succeed();
     }
 

@@ -23,6 +23,16 @@ interval, probability density multiplier, and debug logging. A newly installed
 world initializes chunk snapshots on first observation, so no time before the
 mod was installed is applied retroactively.
 
+## Native save lifecycle
+
+Exposure snapshots are written into the current Forge chunk-save NBT using the
+existing schema. The save callback updates its in-memory snapshot without marking
+the chunk dirty again: Minecraft clears that flag before writing and native flush
+repeats while chunks remain dirty. Marking every saved chunk dirty caused an
+unbounded flush loop and watchdog termination. Normal load/tick/unload snapshot
+changes still mark the chunk dirty, and saving never clears another mutation's
+existing dirty flag. Pending/deferred unload snapshot rules remain unchanged.
+
 ## Validation
 
 ```sh

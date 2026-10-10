@@ -63,7 +63,7 @@ public final class SamplerEvents {
         if (!(event.getLevel() instanceof ServerLevel level) || !(event.getChunk() instanceof LevelChunk chunk)) return;
         final long position = chunk.getPos().toLong();
         if (!pending(level).contains(position) && !deferred(level).remove(position)) {
-            ChunkExposureData.write(level, chunk, ExposureSavedData.get(level).clock());
+            ChunkExposureData.recordForSave(level, chunk, ExposureSavedData.get(level).clock());
         }
         ChunkExposureData.save(level, chunk, event.getData());
     }
