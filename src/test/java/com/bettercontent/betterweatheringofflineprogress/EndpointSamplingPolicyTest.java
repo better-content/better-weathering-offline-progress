@@ -38,6 +38,31 @@ final class EndpointSamplingPolicyTest {
     }
 
     @Test
+    void configurableSamplingRequiresFullAreaAndGrowthTargetNeighborhood() {
+        final var originChunkOnly = (java.util.function.Predicate<BlockPos>) pos ->
+                Math.floorDiv(pos.getX(), 16) == 0 && Math.floorDiv(pos.getZ(), 16) == 0;
+        assertTrue(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(8, 64, 8), 0, originChunkOnly));
+        assertFalse(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(15, 64, 8), 0, originChunkOnly),
+                "even an empty area condition may grow a double target across a chunk edge");
+        assertFalse(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(8, 64, 8), 9, originChunkOnly),
+                "the declared area radius must take precedence over the target margin");
+        assertFalse(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(8, 64, 8), 0, pos -> false));
+        assertTrue(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(-8, 64, -8), 0,
+                pos -> Math.floorDiv(pos.getX(), 16) == -1 && Math.floorDiv(pos.getZ(), 16) == -1));
+    }
+
+    @Test
+    void configurableSamplingChecksInteriorChunksNotOnlyCorners() {
+        final var checked = new java.util.HashSet<BlockPos>();
+        assertTrue(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(8, 64, 8), 32,
+                pos -> { checked.add(pos); return true; }));
+        assertEquals(25, checked.size());
+        assertFalse(EndpointSampler.configurableNeighborhoodLoaded(new BlockPos(8, 64, 8), 32,
+                pos -> !(pos.getX() == 0 && pos.getZ() == 16)),
+                "a missing interior FULL chunk must reject the native area scan");
+    }
+
+    @Test
     void icicleSamplingSkipsBoundariesWhenANeighborChunkIsNotLoaded() {
         final var originChunkOnly = (java.util.function.Predicate<BlockPos>) pos ->
                 Math.floorDiv(pos.getX(), 16) == 0 && Math.floorDiv(pos.getZ(), 16) == 0;

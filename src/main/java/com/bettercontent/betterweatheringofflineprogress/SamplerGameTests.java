@@ -64,6 +64,22 @@ public final class SamplerGameTests {
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 40)
+    public static void configurableNeighborhoodDoesNotLoadMissingChunks(final GameTestHelper helper) {
+        final var level = helper.getLevel();
+        final var origin = helper.absolutePos(BlockPos.ZERO);
+        final var fullChunkLoaded = (java.util.function.Predicate<BlockPos>) pos ->
+                level.getChunkSource().getChunkNow(Math.floorDiv(pos.getX(), 16), Math.floorDiv(pos.getZ(), 16)) != null;
+        helper.assertTrue(EndpointSampler.configurableNeighborhoodLoaded(origin, 0, fullChunkLoaded),
+                "the loaded GameTest neighborhood must retain native growth opportunities");
+        final var missing = origin.offset(1_000_000, 0, 1_000_000);
+        helper.assertTrue(!fullChunkLoaded.test(missing), "regression fixture must begin without a FULL chunk");
+        helper.assertTrue(!EndpointSampler.configurableNeighborhoodLoaded(missing, 8, fullChunkLoaded),
+                "an unloaded native area must skip rather than request chunk promotion");
+        helper.assertTrue(!fullChunkLoaded.test(missing), "neighborhood validation must not load or generate the missing chunk");
+        helper.succeed();
+    }
+
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 40)
     public static void endpointProbabilityIsBounded(final GameTestHelper helper) {
         final double shortAbsence = ProbabilityMath.atLeastOne(20, 0.001D);
         final double longAbsence = ProbabilityMath.atLeastOne(20_000, 0.001D);

@@ -253,10 +253,38 @@ public final class EndpointSampler {
             final long seed = seed(level, pos, new ExposureClock(exposure, 0, 0, 0), ruleKey(rule, source));
             final RandomSource random = RandomSource.create(seed);
             if (!ProbabilityMath.occurs(random, exposure, selectionChance * growthChance * density)) continue;
-            actions.add(new EndpointAction(pos, state, seed, ruleKey(rule, source), () -> ChanceBypass.run(
-                    RandomSource.create(seed),
-                    () -> rule.tryGrowing(pos, state, level, () -> level.getBiome(pos)))));
+            actions.add(new EndpointAction(pos, state, seed, ruleKey(rule, source), () -> {
+                if (rule instanceof ConfigurableBlockGrowth configurable
+                        && !configurableNeighborhoodLoaded(pos, configurable.getAreaCondition().getMaxRange(),
+                        neighbor -> level.getChunkSource().getChunkNow(
+                                SectionPos.blockToSectionCoord(neighbor.getX()),
+                                SectionPos.blockToSectionCoord(neighbor.getZ())) != null)) return;
+                ChanceBypass.run(RandomSource.create(seed),
+                        () -> rule.tryGrowing(pos, state, level, () -> level.getBiome(pos)));
+            }));
         }
+    }
+
+    static boolean configurableNeighborhoodLoaded(
+            final BlockPos pos,
+            final int areaRange,
+            final Predicate<BlockPos> fullChunkLoaded
+    ) {
+        // Native area checks read the entire radius, not just its corner chunks.
+        // FULL chunks must be immediately available: hasChunk/isAreaLoaded may
+        // accept holders whose promotion still requires a synchronous wait.
+        // Three blocks also cover a double growth target and its shape neighbors.
+        final int radius = Math.max(3, areaRange);
+        final int minX = SectionPos.blockToSectionCoord(pos.getX() - radius);
+        final int maxX = SectionPos.blockToSectionCoord(pos.getX() + radius);
+        final int minZ = SectionPos.blockToSectionCoord(pos.getZ() - radius);
+        final int maxZ = SectionPos.blockToSectionCoord(pos.getZ() + radius);
+        for (int chunkZ = minZ; chunkZ <= maxZ; chunkZ++) {
+            for (int chunkX = minX; chunkX <= maxX; chunkX++) {
+                if (!fullChunkLoaded.test(new BlockPos(chunkX * 16, pos.getY(), chunkZ * 16))) return false;
+            }
+        }
+        return true;
     }
 
     static boolean snowIcicleNeighborhoodLoaded(
