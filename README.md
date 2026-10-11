@@ -1,5 +1,11 @@
 # Better Weathering Offline Progress
 
+## Scope and authority
+
+This repository owns its mod-specific behavior and authoring inputs. Read [local instructions](AGENTS.md)
+and the [shared documentation/policy index](../../better-content-modpack/docs/README.md).
+
+
 A Better Content Forge 1.20.1 integration that gives Immersive Weathering a
 bounded unloaded-time endpoint update.
 

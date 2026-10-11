@@ -1,23 +1,16 @@
-# AGENTS.md
+# Better Weathering Offline Progress
 
-## Scope
+Forge 1.20.1 / Java 17; mod ID `better_weathering_offline_progress`.
 
-This repository contains the Better Content-owned Forge mod **Better Weathering Offline Progress**.
+## Local verification
 
-- Canonical mod ID: `better_weathering_offline_progress`
-- Canonical artifact: `better-weathering-offline-progress-<version>.jar`
-- Maven group: `com.bettercontent`
-- Java runtime: 17
-- Minecraft/Forge baseline: 1.20.1 / 47.4.13
+- Deterministic: `./gradlew verifyFast --no-daemon`.
+- Runtime changes: `./gradlew verifyFull --no-daemon`.
+- Stage: `./gradlew stageRuntimeJar`, `build/libs/better-weathering-offline-progress-<version>.jar`.
 
-## Commit discipline
+## Shared authority
 
-Commit each coherent completed change after validation and push the current branch when a canonical remote is available.
-
-## Validation
-
-Run `./gradlew verifyFast --no-daemon` for deterministic checks. Runtime changes also require
-`./gradlew verifyFull --no-daemon` before deployment.
-
-Do not commit build outputs, runtime worlds, logs, IDE state, or downloaded dependency JARs.
-
+Read [workspace policy](../../better-content-modpack/docs/policies/workspace.md),
+[testing](../../better-content-modpack/docs/testing.md) and
+[disposal](../../better-content-modpack/docs/policies/generated-data.md).
+Docs-only changes use the shared documentation check and `git diff --check`.
