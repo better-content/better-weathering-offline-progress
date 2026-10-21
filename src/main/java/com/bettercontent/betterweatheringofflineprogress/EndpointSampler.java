@@ -1,6 +1,8 @@
 package com.bettercontent.betterweatheringofflineprogress;
 
 import com.bettercontent.betterweatheringofflineprogress.mixin.BlockGrowthHandlerAccessor;
+import com.bettercontent.betterweatheringofflineprogress.diagnostics.PlaytestDiagnostics;
+import com.bettercontent.betterweatheringofflineprogress.diagnostics.PlaytestLog;
 import com.bettercontent.betterweatheringofflineprogress.mixin.BuiltinBlockGrowthAccessor;
 import com.ordana.immersive_weathering.blocks.cracked.Crackable;
 import com.ordana.immersive_weathering.blocks.mossy.CrackableMossable;
@@ -43,7 +45,11 @@ public final class EndpointSampler {
 
     public static void sample(final ServerLevel level, final LevelChunk chunk, final ExposureClock elapsed) {
         final int randomTickSpeed = level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);
-        if (randomTickSpeed <= 0 || elapsed.total() <= 0) return;
+        if (randomTickSpeed <= 0 || elapsed.total() <= 0) {
+            if (PlaytestDiagnostics.LOG.enabled("catchup")) PlaytestDiagnostics.LOG.event("catchup", "weathering.catchup", "server", "skipped",
+                randomTickSpeed <= 0 ? "random_ticks_disabled" : "no_exposure", () -> "");
+            return;
+        }
 
         final List<EndpointAction> actions = new ArrayList<>();
         final double randomSelection = ProbabilityMath.randomSelectionChance(randomTickSpeed);
@@ -79,12 +85,16 @@ public final class EndpointSampler {
             action.operation().run();
             applied++;
         }
-        if (SamplerConfig.DEBUG_LOGGING.get()) {
-            ImmersiveWeatheringSampler.LOGGER.info(
-                    "Sampled {} endpoint actions for chunk {} after {} unloaded ticks",
-                    applied,
-                    chunk.getPos(),
-                    elapsed.total());
+        final int invoked = applied;
+        var log = PlaytestDiagnostics.LOG;
+        if (log.enabled("catchup")) log.debug("catchup", "weathering.catchup", PlaytestLog.Context.server(level.dimension().location().toString(), level.getGameTime()),
+            "observed", actions.isEmpty() ? "no_eligible_actions" : "actions_invoked", () -> com.bettercontent.betterweatheringofflineprogress.diagnostics.FeatureObservation.fields(actions.size(), invoked));
+        if (SamplerConfig.DEBUG_LOGGING.get() && log.traceEnabled("catchup")) {
+            BlockPos origin = chunk.getPos().getWorldPosition();
+            log.trace("catchup", "weathering.catchup.focus", new PlaytestLog.Context("server", level.dimension().location().toString(), level.getGameTime(),
+                "", origin.getX() + "," + origin.getY() + "," + origin.getZ()), "observed", "legacy_sample",
+                () -> PlaytestLog.fields("unloaded_ticks", elapsed.total(), "random_tick_speed", randomTickSpeed, "density", density,
+                    "actions_invoked", invoked, "block_mutations", "UNKNOWN"));
         }
     }
 

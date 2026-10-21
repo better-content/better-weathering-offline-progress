@@ -1,6 +1,8 @@
 package com.bettercontent.betterweatheringofflineprogress;
 
 import java.util.Map;
+import com.bettercontent.betterweatheringofflineprogress.diagnostics.PlaytestDiagnostics;
+import com.bettercontent.betterweatheringofflineprogress.diagnostics.PlaytestLog;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceKey;
@@ -46,15 +48,23 @@ public final class SamplerEvents {
         final Set<Long> positions = PENDING.remove(level.dimension());
         if (positions == null || positions.isEmpty()) return;
         final ExposureClock now = exposure.clock();
+        int sampled = 0, unavailable = 0, skipped = 0;
         for (long packedPos : positions) {
             final ChunkPos pos = new ChunkPos(packedPos);
             final LevelChunk chunk = level.getChunkSource().getChunkNow(pos.x, pos.z);
-            if (chunk == null || !ChunkExposureData.initialized(level, chunk)) continue;
+            if (chunk == null || !ChunkExposureData.initialized(level, chunk)) { unavailable++; continue; }
             final ExposureClock elapsed = now.subtractClamped(ChunkExposureData.read(level, chunk));
             if (SamplerConfig.ENABLED.get() && elapsed.total() >= SamplerConfig.MINIMUM_UNLOADED_TICKS.get()) {
                 EndpointSampler.sample(level, chunk, elapsed);
-            }
+                sampled++;
+            } else skipped++;
             ChunkExposureData.write(level, chunk, now);
+        }
+        if (PlaytestDiagnostics.LOG.enabled("catchup")) {
+            final int sampledCount = sampled, unavailableCount = unavailable, skippedCount = skipped;
+            PlaytestDiagnostics.LOG.debug("catchup", "weathering.pending_batch", PlaytestLog.Context.server(level.dimension().location().toString(), level.getGameTime()),
+                "observed", "queue_drained", () -> PlaytestLog.fields("visited", positions.size(), "sampled", sampledCount,
+                    "unavailable", unavailableCount, "disabled_or_below_minimum", skippedCount));
         }
     }
 
@@ -87,6 +97,11 @@ public final class SamplerEvents {
 
     private static Set<Long> deferred(final ServerLevel level) {
         return queue(DEFERRED_UNLOAD_SAVES, level.dimension());
+    }
+
+    public static void stopped() {
+        PENDING.clear();
+        DEFERRED_UNLOAD_SAVES.clear();
     }
 
     static <K> Set<Long> queue(final Map<K, Set<Long>> queues, final K key) {

@@ -97,13 +97,7 @@ tasks.register("headlessGameTest") {
     dependsOn(tasks.named("runGameTestServer"))
 }
 
-val syncGameTestStructures by tasks.registering(Copy::class) {
-    from("src/gameteststructures")
-    into("run-gametest/gameteststructures")
-}
-tasks.matching { it.name.startsWith("prepareRunGameTestServer") }.configureEach {
-    dependsOn(syncGameTestStructures)
-}
+apply(from = "gradle/native-gametest-fixture.gradle")
 
 tasks.register("verifyFast") { dependsOn(tasks.named("check")) }
 tasks.register("verifyFull") {
