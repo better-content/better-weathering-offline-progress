@@ -30,11 +30,7 @@ INFO startup supplies enabled/version/integration/own-source metadata or UNKNOWN
 Standalone stays native INFO; pack profile chooses scoped DEBUG/`bc.playtest.level`.
 Common six-case and invoked-versus-mutated projection tests run with the source gate.
 
-## Scope and authority
-
-This repository owns its mod-specific behavior and authoring inputs. Read [local instructions](AGENTS.md)
-and the [shared documentation/policy index](../../better-content-modpack/docs/README.md).
-
+## Scope
 
 A Better Content Forge 1.20.1 integration that gives Immersive Weathering a
 bounded unloaded-time endpoint update.
