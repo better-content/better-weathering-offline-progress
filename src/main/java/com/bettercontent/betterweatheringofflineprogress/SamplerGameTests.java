@@ -5,6 +5,8 @@ import net.minecraftforge.event.level.ChunkDataEvent;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.event.RegisterGameTestsEvent;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -77,6 +79,73 @@ public final class SamplerGameTests {
                 "an unloaded native area must skip rather than request chunk promotion");
         helper.assertTrue(!fullChunkLoaded.test(missing), "neighborhood validation must not load or generate the missing chunk");
         helper.succeed();
+    }
+
+    /** A fresh disposable native fixture, not a claim of disk restart or a guaranteed random block change.
+     * No gamerule, weather, world time, block or persistent ticket is changed by this test. The
+     * remote chunk must disappear from the live FULL cache without a forced-unload helper call.
+     */
+    @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 2000)
+    public static void nativeUnloadedChunkReloadRefreshesExposureSnapshot(final GameTestHelper helper) {
+        final ServerLevel level = helper.getLevel();
+        final var source = level.getChunkSource();
+        final BlockPos fixture = helper.absolutePos(BlockPos.ZERO);
+        // Far outside the GameTest and spawn tickets, but within ordinary world bounds.
+        final int x = Math.floorDiv(fixture.getX(), 16) + 512;
+        final int z = Math.floorDiv(fixture.getZ(), 16) + 512;
+        helper.assertTrue(source.getChunkNow(x, z) == null,
+                "Fresh remote fixture must not start as a loaded FULL chunk");
+        final LevelChunk first = level.getChunk(x, z); // Deliberate initial fixture load, not an assertion.
+        helper.assertTrue(ChunkExposureData.initialized(level, first),
+                "Native first-load event must initialize a chunk snapshot");
+        final ExposureClock initial = ChunkExposureData.read(level, first);
+        awaitNativeUnload(helper, level, x, z, initial, level.getGameTime());
+    }
+
+    private static void awaitNativeUnload(final GameTestHelper helper, final ServerLevel level,
+                                          final int x, final int z, final ExposureClock initial, final long began) {
+        final long now = level.getGameTime();
+        helper.assertTrue(now - began < 1700,
+                "Remote chunk did not naturally leave the FULL cache; cannot assert unload/reload");
+        if (level.getChunkSource().getChunkNow(x, z) != null) {
+            helper.runAfterDelay(5, () -> awaitNativeUnload(helper, level, x, z, initial, began));
+            return;
+        }
+        // getChunkNow is read-only. Do not promote a missing chunk just to make an assertion pass.
+        awaitElapsedUnloaded(helper, level, x, z, initial, now);
+    }
+
+    private static void awaitElapsedUnloaded(final GameTestHelper helper, final ServerLevel level,
+                                              final int x, final int z, final ExposureClock initial, final long unloaded) {
+        final long elapsed = level.getGameTime() - unloaded;
+        final int minimum = SamplerConfig.MINIMUM_UNLOADED_TICKS.get();
+        helper.assertTrue(minimum <= 200,
+                "Configured minimum exceeds this bounded native fixture; do not change global config");
+        helper.assertTrue(elapsed < 250,
+                "No bounded unloaded exposure window was available");
+        helper.assertTrue(level.getChunkSource().getChunkNow(x, z) == null,
+                "Remote FULL chunk reloaded before deliberate fixture action");
+        if (elapsed < Math.max(100, minimum)) {
+            helper.runAfterDelay(5, () -> awaitElapsedUnloaded(helper, level, x, z, initial, unloaded));
+            return;
+        }
+        final ExposureClock beforeReload = ExposureSavedData.get(level).clock();
+        final LevelChunk returning = level.getChunk(x, z); // Deliberate reload ONLY after observed absence.
+        helper.assertTrue(ChunkExposureData.initialized(level, returning),
+                "Reloaded chunk lost the native snapshot; save/load path is not proven");
+        final ExposureClock restored = ChunkExposureData.read(level, returning);
+        helper.assertTrue(restored.total() >= initial.total() && restored.total() <= beforeReload.total(),
+                "Reload must restore a bounded unload snapshot before the queued native tick");
+        helper.runAfterDelay(2, () -> {
+            final LevelChunk observed = level.getChunkSource().getChunkNow(x, z);
+            helper.assertTrue(observed != null && ChunkExposureData.initialized(level, observed),
+                    "Reloaded FULL chunk must remain available through the first native level tick");
+            final ExposureClock updated = ChunkExposureData.read(level, observed);
+            helper.assertTrue(updated.total() >= beforeReload.total() && updated.total() > restored.total(),
+                    "Native level tick must advance the reloaded snapshot across the unloaded interval");
+            // No block-change claim: endpoint actions are chance/config/provider dependent.
+            helper.succeed();
+        });
     }
 
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 40)
