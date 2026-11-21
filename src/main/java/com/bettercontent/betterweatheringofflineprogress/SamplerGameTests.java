@@ -1,6 +1,9 @@
 package com.bettercontent.betterweatheringofflineprogress;
 
+import java.util.Comparator;
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.TicketType;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraftforge.event.level.ChunkDataEvent;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -14,6 +17,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @GameTestHolder(ImmersiveWeatheringSampler.MOD_ID)
 @PrefixGameTestTemplate(false)
 public final class SamplerGameTests {
+    private static final TicketType<ChunkPos> RELOAD_WITNESS = TicketType.create(
+            "weathering_reload_witness", Comparator.comparingLong(ChunkPos::toLong));
+
     private SamplerGameTests() {
     }
 
@@ -84,6 +90,8 @@ public final class SamplerGameTests {
     /** A fresh disposable native fixture, not a claim of disk restart or a guaranteed random block change.
      * No gamerule, weather, world time, block or persistent ticket is changed by this test. The
      * remote chunk must disappear from the live FULL cache without a forced-unload helper call.
+     * After that native unload, a short-lived fixture ticket holds only the deliberate reload
+     * through its first level tick; the ticket is removed even if the assertion fails.
      */
     @GameTest(templateNamespace = "minecraft", template = "empty", timeoutTicks = 2000)
     public static void nativeUnloadedChunkReloadRefreshesExposureSnapshot(final GameTestHelper helper) {
@@ -136,15 +144,21 @@ public final class SamplerGameTests {
         final ExposureClock restored = ChunkExposureData.read(level, returning);
         helper.assertTrue(restored.total() >= initial.total() && restored.total() <= beforeReload.total(),
                 "Reload must restore a bounded unload snapshot before the queued native tick");
+        final ChunkPos position = new ChunkPos(x, z);
+        level.getChunkSource().addRegionTicket(RELOAD_WITNESS, position, 0, position);
         helper.runAfterDelay(2, () -> {
-            final LevelChunk observed = level.getChunkSource().getChunkNow(x, z);
-            helper.assertTrue(observed != null && ChunkExposureData.initialized(level, observed),
-                    "Reloaded FULL chunk must remain available through the first native level tick");
-            final ExposureClock updated = ChunkExposureData.read(level, observed);
-            helper.assertTrue(updated.total() >= beforeReload.total() && updated.total() > restored.total(),
-                    "Native level tick must advance the reloaded snapshot across the unloaded interval");
-            // No block-change claim: endpoint actions are chance/config/provider dependent.
-            helper.succeed();
+            try {
+                final LevelChunk observed = level.getChunkSource().getChunkNow(x, z);
+                helper.assertTrue(observed != null && ChunkExposureData.initialized(level, observed),
+                        "Reloaded FULL chunk must remain available through the first native level tick");
+                final ExposureClock updated = ChunkExposureData.read(level, observed);
+                helper.assertTrue(updated.total() >= beforeReload.total() && updated.total() > restored.total(),
+                        "Native level tick must advance the reloaded snapshot across the unloaded interval");
+                // No block-change claim: endpoint actions are chance/config/provider dependent.
+                helper.succeed();
+            } finally {
+                level.getChunkSource().removeRegionTicket(RELOAD_WITNESS, position, 0, position);
+            }
         });
     }
 
