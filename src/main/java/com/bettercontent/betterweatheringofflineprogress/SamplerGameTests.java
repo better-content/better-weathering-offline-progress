@@ -4,7 +4,10 @@ import java.util.Comparator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.level.ChunkDataEvent;
+import net.minecraftforge.event.level.ChunkEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -89,7 +92,7 @@ public final class SamplerGameTests {
 
     /** A fresh disposable native fixture, not a claim of disk restart or a guaranteed random block change.
      * No gamerule, weather, world time, block or persistent ticket is changed by this test. The
-     * remote chunk must disappear from the live FULL cache without a forced-unload helper call.
+     * remote chunk must emit Forge's actual unload event without a forced-unload helper call.
      * After that native unload, a short-lived fixture ticket holds only the deliberate reload
      * through its first level tick; the ticket is removed even if the assertion fails.
      */
@@ -107,19 +110,36 @@ public final class SamplerGameTests {
         helper.assertTrue(ChunkExposureData.initialized(level, first),
                 "Native first-load event must initialize a chunk snapshot");
         final ExposureClock initial = ChunkExposureData.read(level, first);
-        awaitNativeUnload(helper, level, x, z, initial, level.getGameTime());
+        final UnloadWitness witness = new UnloadWitness(first);
+        MinecraftForge.EVENT_BUS.register(witness);
+        awaitNativeUnload(helper, level, x, z, initial, level.getGameTime(), witness);
+    }
+
+    public static final class UnloadWitness {
+        private final LevelChunk original;
+        private boolean unloaded;
+
+        private UnloadWitness(final LevelChunk original) {
+            this.original = original;
+        }
+
+        @SubscribeEvent
+        public void onUnload(final ChunkEvent.Unload event) {
+            if (event.getChunk() == original) unloaded = true;
+        }
     }
 
     private static void awaitNativeUnload(final GameTestHelper helper, final ServerLevel level,
-                                          final int x, final int z, final ExposureClock initial, final long began) {
+                                          final int x, final int z, final ExposureClock initial, final long began,
+                                          final UnloadWitness witness) {
         final long now = level.getGameTime();
-        helper.assertTrue(now - began < 1700,
-                "Remote chunk did not naturally leave the FULL cache; cannot assert unload/reload");
-        if (level.getChunkSource().getChunkNow(x, z) != null) {
-            helper.runAfterDelay(5, () -> awaitNativeUnload(helper, level, x, z, initial, began));
+        if (!witness.unloaded && now - began < 1700) {
+            helper.runAfterDelay(5, () -> awaitNativeUnload(helper, level, x, z, initial, began, witness));
             return;
         }
-        // getChunkNow is read-only. Do not promote a missing chunk just to make an assertion pass.
+        MinecraftForge.EVENT_BUS.unregister(witness);
+        helper.assertTrue(witness.unloaded, "Remote chunk did not emit a native unload event");
+        // Losing FULL status alone can leave the original chunk in the pending-unload map.
         awaitElapsedUnloaded(helper, level, x, z, initial, now);
     }
 
